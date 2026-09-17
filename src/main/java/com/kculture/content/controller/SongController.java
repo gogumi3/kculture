@@ -24,6 +24,7 @@ public class SongController {
         return songService.findSong(id);
     }
 
+    @GetMapping("/search")
     public List<SongResponse> searchSongs(
             @RequestParam String keyword
     ) {
