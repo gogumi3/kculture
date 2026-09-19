@@ -35,6 +35,14 @@ public class Place {
     // 고궁 , 시장 등 장소 분류
     private String category;
 
+    @Column(name = "description", length = 500)
+    // 장소 설명 (카드용)
+    private String description;
+
+    @Column(name = "image_url", length = 300)
+    // 대표 이미지 URL
+    private String imageUrl;
+
     @Column(name = "latitude", precision = 10, scale = 7)
     // 위도
     private BigDecimal latitude;

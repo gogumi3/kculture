@@ -27,6 +27,18 @@ public class Accommodation {
     // 숙소 유형
     private String accomType;
 
+    @Column(name = "price_range", length = 30)
+    // 가격대 (LOW/MID/HIGH 등, 필터용)
+    private String priceRange;
+
+    @Column(name = "rating", precision = 2, scale = 1)
+    // 평점 0.0 ~ 5.0
+    private BigDecimal rating;
+
+    @Column(name = "kakao_place_id", length = 50)
+    // 카카오맵 장소 ID (지도 마커 연동)
+    private String kakaoPlaceId;
+
     @Column(name = "region_sido", length = 50)
     private String regionSido;
 
