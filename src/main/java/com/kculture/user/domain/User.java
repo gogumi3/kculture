@@ -25,6 +25,10 @@ public class User {
     // 화면에 표시할 닉네임
     private String nickname;
 
+    @Column(name = "nationality", length = 50)
+    // 국적 (선택 입력, 시기 추천용)
+    private String nationality;
+
     @Column(name = "language_pref", nullable = false, length = 10)
     // 사용할 언어 (기본은 한국어)
     private String languagePref = "ko";
@@ -46,6 +50,30 @@ public class User {
         this.email = email;
         this.nickname = nickname;
         this.provider = provider;
+    }
+
+    public User(String email, String nickname, String provider,
+                String languagePref, String nationality) {
+        this.email = email;
+        this.nickname = nickname;
+        this.provider = provider;
+        if (languagePref != null) {         // 값이 없으면 기본 "ko" 유지
+            this.languagePref = languagePref;
+        }
+        this.nationality = nationality;
+    }
+
+    // 설정 화면(S11)에서 닉네임/국적/언어를 부분 수정 (null이면 기존값 유지)
+    public void updateSettings(String nickname, String nationality, String languagePref) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (nationality != null) {
+            this.nationality = nationality;
+        }
+        if (languagePref != null) {
+            this.languagePref = languagePref;
+        }
     }
 
     @PrePersist
