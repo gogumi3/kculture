@@ -4,6 +4,7 @@ import com.kculture.quest.domain.*;
 import com.kculture.quest.dto.*;
 import com.kculture.quest.exception.QuestNotFoundException;
 import com.kculture.quest.repository.*;
+import com.kculture.common.geo.GeoUtils;
 import com.kculture.user.domain.User;
 import com.kculture.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -189,7 +190,7 @@ public class QuestProgressService {
         if (step.getPlace().getLatitude() == null || step.getPlace().getLongitude() == null) {
             throw new IllegalStateException("장소의 GPS 좌표가 없습니다.");
         }
-        return GeoDistance.meters(
+        return GeoUtils.haversineMeters(
                 request.latitude().doubleValue(), request.longitude().doubleValue(),
                 step.getPlace().getLatitude().doubleValue(), step.getPlace().getLongitude().doubleValue()
         );
