@@ -64,4 +64,16 @@ public class UserQuestProgress {
     private void onCreate() {
         this.startedAt = LocalDateTime.now();
     }
+
+    // 다음 방문 단계가 열리면 현재 단계 번호를 변경한다.
+    public void moveTo(int nextStep) {
+        this.currentStep = nextStep;
+    }
+
+    // 마지막 단계를 끝냈을 때 전체 퀘스트를 완료 처리한다.
+    public void complete() {
+        this.status = QuestProgressStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
 }

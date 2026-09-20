@@ -7,6 +7,9 @@ import java.util.List;
 
 public interface CulturalElementRepository extends JpaRepository<CulturalElement, Long> {
 
-    // 특정 분석에서 추출된 요소들
+    // 영상에 등장한 시간 순서대로 요소 반환
+    List<CulturalElement> findByAnalysisIdOrderByTimestampSecAscIdAsc(Long analysisId);
+
+    // 특정 분석에서 추출된 전체 요소 조회
     List<CulturalElement> findByAnalysis_Id(Long analysisId);
 }
