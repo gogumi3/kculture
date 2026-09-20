@@ -44,6 +44,11 @@ public class RecommendationSession {
         this.song = song;
     }
 
+    // 세션 상태 전환 (예: 퀘스트로 전환 시 CONVERTED)
+    public void changeStatus(RecommendationStatus status) {
+        this.status = status;
+    }
+
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();

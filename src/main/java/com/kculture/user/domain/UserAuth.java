@@ -66,6 +66,11 @@ public class UserAuth {
         this.passwordHash = passwordHash;
     }
 
+    // 로그인 성공 시 마지막 로그인 시간 갱신
+    public void markLoginNow() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
+
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();

@@ -64,6 +64,16 @@ public class SessionPlace {
         this.displayOrder = displayOrder;
     }
 
+    // 사용자가 코스에 담기/빼기
+    public void markChosen(boolean chosen) {
+        this.chosen = chosen;
+    }
+
+    // 화면에 노출된 시점 기록 (S04)
+    public void markShownNow() {
+        this.shownAt = LocalDateTime.now();
+    }
+
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
