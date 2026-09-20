@@ -74,4 +74,10 @@ public class Translation {
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    // 같은 번역 데이터가 다시 들어오면 행을 추가하지 않고 번역문만 수정한다.
+    public void updateText(String textValue) {
+        this.textValue = textValue;
+    }
+
 }

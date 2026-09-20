@@ -2,6 +2,7 @@ package com.kculture.content.service;
 
 import com.kculture.content.domain.Song;
 import com.kculture.content.dto.SongResponse;
+import com.kculture.content.exception.ContentNotFoundException;
 import com.kculture.content.repository.SongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class SongService {
 
     public SongResponse findSong(Long id) {
         Song song = songRepository.findById(id)
-                .orElseThrow(() -> new IllegalAccessError("곡을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ContentNotFoundException("곡을 찾을 수 없습니다."));
 
         return new SongResponse(
                 song.getId(),
@@ -42,6 +43,10 @@ public class SongService {
     }
 
     public List<SongResponse> searchSongs(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("검색어를 입력하세요.");
+        }
+        keyword = keyword.strip();
         return songRepository.findByTitleContainingIgnoreCase(keyword)
                 .stream()
                 .map(song -> new SongResponse(

@@ -1,16 +1,102 @@
 package com.kculture.content.service;
 
-import com.kculture.content.repository.CulturalElementRepository;
-import com.kculture.content.repository.MvAnalysisRepository;
-import com.kculture.content.repository.TranslationRepository;
+import com.kculture.content.domain.*;
+import com.kculture.content.dto.*;
+import com.kculture.content.exception.ContentNotFoundException;
+import com.kculture.content.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MvAnalysisService {
 
-    private final MvAnalysisRepository mvAnalysisRepository;
-    private final CulturalElementRepository culturalElementRepository;
-    private final TranslationRepository translationRepository;
+    private final SongRepository songRepository;
+    private final MvAnalysisRepository analysisRepository;
+    private final CulturalElementRepository elementRepository;
+
+    // 곡에 대한 분석 작업을 생성한다. 실패하지 않은 최신 작업이 있으면 재사용한다.
+    @Transactional
+    public AnalysisResponse createAnalysis(Long songId, String modelName) {
+        Song song = songRepository.findById(songId)
+                .orElseThrow(() -> new ContentNotFoundException("곡을 찾을 수 없습니다."));
+
+        if (modelName == null || modelName.isBlank()) {
+            throw new IllegalArgumentException("모델 이름을 입력하세요.");
+        }
+
+        return analysisRepository.findFirstBySongIdOrderByIdDesc(songId)
+                .filter(analysis -> analysis.getStatus() != AnalysisStatus.FAILED)
+                .map(AnalysisResponse::from)
+                .orElseGet(() -> AnalysisResponse.from(
+                        analysisRepository.save(new MvAnalysis(song, modelName.strip()))
+                ));
+    }
+
+    public List<AnalysisResponse> findAnalyses(Long songId) {
+        if (!songRepository.existsById(songId)) {
+            throw new ContentNotFoundException("곡을 찾을 수 없습니다.");
+        }
+        return analysisRepository.findBySongIdOrderByIdDesc(songId).stream()
+                .map(AnalysisResponse::from)
+                .toList();
+    }
+
+    public AnalysisResponse findAnalysis(Long analysisId) {
+        return AnalysisResponse.from(findEntity(analysisId));
+    }
+
+    public List<CulturalElementResponse> findElements(Long analysisId) {
+        findEntity(analysisId);
+        return elementRepository.findByAnalysisIdOrderByTimestampSecAscIdAsc(analysisId).stream()
+                .map(CulturalElementResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public AnalysisResponse startAnalysis(Long analysisId) {
+        MvAnalysis analysis = findEntity(analysisId);
+        if (analysis.getStatus() != AnalysisStatus.PENDING) {
+            throw new IllegalArgumentException("대기 중인 분석만 시작할 수 있습니다.");
+        }
+        analysis.start();
+        return AnalysisResponse.from(analysis);
+    }
+
+    @Transactional
+    public AnalysisResponse completeAnalysis(Long analysisId, AnalysisCompleteRequest request) {
+        MvAnalysis analysis = findEntity(analysisId);
+        if (analysis.getStatus() != AnalysisStatus.RUNNING) {
+            throw new IllegalArgumentException("진행 중인 분석만 완료할 수 있습니다.");
+        }
+
+        List<CulturalElement> elements = request.elements().stream()
+                .map(element -> new CulturalElement(
+                        analysis, element.category(), element.name(), element.description(),
+                        element.timestampSec(), element.confidence()
+                ))
+                .toList();
+
+        elementRepository.saveAll(elements);
+        analysis.finish(true);
+        return AnalysisResponse.from(analysis);
+    }
+
+    @Transactional
+    public AnalysisResponse failAnalysis(Long analysisId) {
+        MvAnalysis analysis = findEntity(analysisId);
+        if (analysis.getStatus() == AnalysisStatus.DONE || analysis.getStatus() == AnalysisStatus.FAILED) {
+            throw new IllegalArgumentException("이미 종료된 분석입니다.");
+        }
+        analysis.finish(false);
+        return AnalysisResponse.from(analysis);
+    }
+
+    private MvAnalysis findEntity(Long id) {
+        return analysisRepository.findById(id)
+                .orElseThrow(() -> new ContentNotFoundException("분석 기록을 찾을 수 없습니다."));
+    }
 }

@@ -55,4 +55,17 @@ public class MvAnalysis {
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    // 분석을 시작할 때 상태와 시작 시각을 함께 변경한다.
+    public void start() {
+        this.status = AnalysisStatus.RUNNING;
+        this.startedAt = LocalDateTime.now();
+    }
+
+    // 분석 성공 여부에 따라 최종 상태와 종료 시각을 저장한다.
+    public void finish(boolean success) {
+        this.status = success ? AnalysisStatus.DONE : AnalysisStatus.FAILED;
+        this.finishedAt = LocalDateTime.now();
+    }
+
 }

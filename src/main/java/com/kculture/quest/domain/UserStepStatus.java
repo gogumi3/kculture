@@ -55,4 +55,23 @@ public class UserStepStatus {
         this.user = user;
         this.questStep = questStep;
     }
+
+    // 잠긴 단계를 진행 가능한 상태로 변경한다.
+    public void unlock() {
+        if (this.status != StepStatus.LOCKED) {
+            throw new IllegalStateException("잠긴 단계만 해제할 수 있습니다.");
+        }
+        this.status = StepStatus.UNLOCKED;
+        this.unlockedAt = LocalDateTime.now();
+    }
+
+    // 현재 진행 가능한 단계를 완료 상태로 변경한다.
+    public void complete() {
+        if (this.status != StepStatus.UNLOCKED) {
+            throw new IllegalStateException("열린 단계만 완료할 수 있습니다.");
+        }
+        this.status = StepStatus.DONE;
+        this.doneAt = LocalDateTime.now();
+    }
+
 }

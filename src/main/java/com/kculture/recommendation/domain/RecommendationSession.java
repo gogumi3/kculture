@@ -48,4 +48,9 @@ public class RecommendationSession {
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+    // 선택한 추천 장소가 퀘스트로 만들어진 뒤 세션 상태를 변경한다.
+    public void convertToQuest() {
+        this.status = RecommendationStatus.CONVERTED;
+    }
+
 }
