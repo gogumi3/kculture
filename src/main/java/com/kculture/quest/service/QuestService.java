@@ -126,7 +126,7 @@ public class QuestService {
             ));
         }
 
-        session.convertToQuest();
+        session.changeStatus(RecommendationStatus.CONVERTED);
         return QuestResponse.from(quest);
     }
 

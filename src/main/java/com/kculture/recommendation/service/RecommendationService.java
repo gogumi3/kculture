@@ -64,7 +64,8 @@ public class RecommendationService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "분석이 완료된 데이터가 없습니다."));
 
-        List<CulturalElement> elements = culturalElementRepository.findByAnalysis_Id(analysis.getId());
+        List<CulturalElement> elements = culturalElementRepository
+                .findByAnalysisIdOrderByTimestampSecAscIdAsc(analysis.getId());
         if (elements.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "추출된 한국적 요소가 없습니다.");
         }
