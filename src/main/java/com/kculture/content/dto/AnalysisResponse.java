@@ -11,7 +11,8 @@ public record AnalysisResponse(
         AnalysisStatus status,
         String modelName,
         LocalDateTime startedAt,
-        LocalDateTime finishedAt
+        LocalDateTime finishedAt,
+        String failReason
 ) {
     public static AnalysisResponse from(MvAnalysis analysis) {
         return new AnalysisResponse(
@@ -20,7 +21,8 @@ public record AnalysisResponse(
                 analysis.getStatus(),
                 analysis.getModelName(),
                 analysis.getStartedAt(),
-                analysis.getFinishedAt()
+                analysis.getFinishedAt(),
+                analysis.getFailReason()
         );
     }
 }
