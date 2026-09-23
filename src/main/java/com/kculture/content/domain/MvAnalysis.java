@@ -41,6 +41,10 @@ public class MvAnalysis {
     // 분석 종료 시간
     private LocalDateTime finishedAt;
 
+    @Column(name = "fail_reason", length = 255)
+    // 실패 사유 (FAILED일 때만, 성공 시 null)
+    private String failReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     // 분석 작업 등록 시간
     private LocalDateTime createdAt;
@@ -66,6 +70,16 @@ public class MvAnalysis {
     public void finish(boolean success) {
         this.status = success ? AnalysisStatus.DONE : AnalysisStatus.FAILED;
         this.finishedAt = LocalDateTime.now();
+    }
+
+    // 실패 처리 + 사유 기록 (컬럼 길이 255 초과 시 잘라 저장)
+    public void fail(String reason) {
+        this.status = AnalysisStatus.FAILED;
+        this.finishedAt = LocalDateTime.now();
+        if (reason != null && reason.length() > 255) {
+            reason = reason.substring(0, 255);
+        }
+        this.failReason = reason;
     }
 
 }

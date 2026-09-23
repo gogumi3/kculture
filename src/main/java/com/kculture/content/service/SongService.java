@@ -1,11 +1,14 @@
 package com.kculture.content.service;
 
+import com.kculture.content.client.YoutubeDataClient;
+import com.kculture.content.client.dto.YoutubeVideoInfo;
 import com.kculture.content.domain.Song;
 import com.kculture.content.dto.SongResponse;
 import com.kculture.content.exception.ContentNotFoundException;
 import com.kculture.content.repository.SongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,6 +17,7 @@ import java.util.List;
 public class SongService {
 
     private final SongRepository songRepository;
+    private final YoutubeDataClient youtubeDataClient;
 
     public List<SongResponse> findAllSongs() {
         return songRepository.findAll().stream()
@@ -56,5 +60,29 @@ public class SongService {
                         song.getThumbnailUrl()
                 ))
                 .toList();
+    }
+
+    // 공개 MV의 video id로 곡을 등록한다. 메타데이터(제목/가수/썸네일)는 YouTube Data API로 자동 수집한다.
+    @Transactional
+    public SongResponse createFromYoutube(String youtubeVideoId) {
+        String videoId = youtubeVideoId.strip();
+        return songRepository.findByYoutubeVideoId(videoId)
+                .map(this::toResponse)                       // 이미 있으면 재사용
+                .orElseGet(() -> {
+                    YoutubeVideoInfo info = youtubeDataClient.fetch(videoId);
+                    Song saved = songRepository.save(new Song(
+                            info.title(),
+                            info.channelTitle(),             // 채널명을 아티스트로 사용
+                            videoId,
+                            info.thumbnailUrl()
+                    ));
+                    return toResponse(saved);
+                });
+    }
+
+    private SongResponse toResponse(Song song) {
+        return new SongResponse(
+                song.getId(), song.getTitle(), song.getArtist(), song.getThumbnailUrl()
+        );
     }
 }
