@@ -5,6 +5,7 @@ import com.kculture.quest.service.QuestProgressService;
 import com.kculture.quest.service.QuestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -33,16 +34,16 @@ public class QuestController {
 
     @PostMapping("/from-session")
     public QuestResponse createQuestFromSession(
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody QuestFromSessionRequest request
     ) {
-        return questService.createQuestFromSession(request);
+        return questService.createQuestFromSession(userId, request);
     }
 
-    // 로그인 기능이 완성되기 전 테스트를 위해 userId를 요청 파라미터로 받는다.
     @PostMapping("/{questId}/start")
     public QuestProgressResponse startQuest(
             @PathVariable Long questId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal Long userId
     ) {
         return progressService.startQuest(userId, questId);
     }
@@ -50,7 +51,7 @@ public class QuestController {
     @GetMapping("/{questId}/progress")
     public QuestProgressResponse findProgress(
             @PathVariable Long questId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal Long userId
     ) {
         return progressService.findProgress(userId, questId);
     }
@@ -59,7 +60,7 @@ public class QuestController {
     public ArrivalResponse checkArrival(
             @PathVariable Long questId,
             @PathVariable Long stepId,
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody LocationRequest request
     ) {
         return progressService.checkArrival(userId, questId, stepId, request);
@@ -69,7 +70,7 @@ public class QuestController {
     public QuestProgressResponse completeMission(
             @PathVariable Long questId,
             @PathVariable Long stepId,
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody MissionCompleteRequest request
     ) {
         return progressService.completeMission(userId, questId, stepId, request);

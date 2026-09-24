@@ -52,7 +52,7 @@ public class UserService {
         return UserResponse.from(user);
     }
 
-    // 이메일 로그인: 비밀번호 검증 (MVP - 토큰 없이 프로필 반환)
+    // 이메일 로그인: 비밀번호 검증 후 컨트롤러가 JWT와 함께 반환할 프로필 생성
     @Transactional
     public UserResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
