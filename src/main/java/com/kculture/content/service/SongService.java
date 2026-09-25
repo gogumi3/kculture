@@ -29,6 +29,7 @@ public class SongService {
                         song.getId(),
                         song.getTitle(),
                         song.getArtist(),
+                        song.getYoutubeVideoId(),
                         song.getThumbnailUrl()
                 ))
                 .toList();
@@ -42,6 +43,7 @@ public class SongService {
                 song.getId(),
                 song.getTitle(),
                 song.getArtist(),
+                song.getYoutubeVideoId(),
                 song.getThumbnailUrl()
         );
     }
@@ -57,6 +59,7 @@ public class SongService {
                         song.getId(),
                         song.getTitle(),
                         song.getArtist(),
+                        song.getYoutubeVideoId(),
                         song.getThumbnailUrl()
                 ))
                 .toList();
@@ -82,7 +85,8 @@ public class SongService {
 
     private SongResponse toResponse(Song song) {
         return new SongResponse(
-                song.getId(), song.getTitle(), song.getArtist(), song.getThumbnailUrl()
+                song.getId(), song.getTitle(), song.getArtist(),
+                song.getYoutubeVideoId(), song.getThumbnailUrl()
         );
     }
 }

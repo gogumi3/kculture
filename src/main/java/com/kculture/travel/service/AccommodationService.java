@@ -24,8 +24,14 @@ public class AccommodationService {
     @Transactional(readOnly = true)
     public List<AccommodationResponse> findNearby(double lat, double lng, double radiusMeters,
                                                   String type, String priceRange, int limit) {
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "위도 또는 경도 범위가 올바르지 않습니다.");
+        }
         if (radiusMeters <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "radius는 0보다 커야 합니다.");
+        }
+        if (limit < 1 || limit > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "limit은 1에서 100 사이여야 합니다.");
         }
 
         GeoUtils.BoundingBox box = GeoUtils.boundingBox(lat, lng, radiusMeters);

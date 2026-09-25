@@ -27,8 +27,9 @@ public class QuestProgressService {
 
     @Transactional
     public QuestProgressResponse startQuest(Long userId, Long questId) {
-        User user = findUser(userId);
-        Quest quest = questService.findQuestEntity(questId);
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new QuestNotFoundException("사용자를 찾을 수 없습니다."));
+        Quest quest = questService.findQuestEntity(questId, userId);
 
         // 이미 시작한 퀘스트라면 새 기록을 만들지 않고 기존 진행 상황을 반환한다.
         return progressRepository.findByUserIdAndQuestId(userId, questId)
@@ -80,7 +81,7 @@ public class QuestProgressService {
             Long userId, Long questId, Long stepId, MissionCompleteRequest request
     ) {
         User user = findUser(userId);
-        UserQuestProgress progress = progressRepository.findByUserIdAndQuestId(userId, questId)
+        UserQuestProgress progress = progressRepository.findByUserIdAndQuestIdForUpdate(userId, questId)
                 .orElseThrow(() -> new QuestNotFoundException("퀘스트를 먼저 시작하세요."));
         UserStepStatus currentStatus = findStepStatus(userId, questId, stepId);
 

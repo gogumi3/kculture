@@ -28,7 +28,10 @@ public class PlaceService {
     // 이름 검색
     @Transactional(readOnly = true)
     public List<PlaceResponse> searchPlaces(String keyword) {
-        return placeRepository.findByNameContainingIgnoreCase(keyword).stream()
+        if (keyword == null || keyword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검색어를 입력하세요.");
+        }
+        return placeRepository.findByNameContainingIgnoreCase(keyword.strip()).stream()
                 .map(PlaceResponse::from)
                 .toList();
     }

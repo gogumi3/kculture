@@ -4,10 +4,14 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.kculture.content.dto.CulturalElementRequest;
+import com.kculture.common.exception.ExternalApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -58,15 +62,31 @@ public class GeminiVideoClient {
     }
 
     public List<CulturalElementRequest> analyze(String videoId) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ExternalApiException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Gemini API 키가 설정되지 않았습니다."
+            );
+        }
         String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
         Map<String, Object> body = buildRequestBody(videoUrl);
 
-        JsonNode resp = client.post()
-                .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(JsonNode.class);
+        JsonNode resp;
+        try {
+            resp = client.post()
+                    .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (ResourceAccessException exception) {
+            throw new ExternalApiException(
+                    HttpStatus.GATEWAY_TIMEOUT, "Gemini API 응답 시간이 초과되었습니다.", exception
+            );
+        } catch (RestClientException exception) {
+            throw new ExternalApiException(
+                    HttpStatus.BAD_GATEWAY, "Gemini API 호출에 실패했습니다.", exception
+            );
+        }
 
         String text = (resp == null) ? "" : resp
                 .path("candidates").path(0)

@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -28,12 +30,13 @@ public class UserService {
     // 이메일 회원가입: users + user_auth(LOCAL) 동시 생성
     @Transactional
     public UserResponse signup(SignupRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String email = normalizeEmail(request.email());
+        if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 가입된 이메일입니다.");
         }
 
         User user = new User(
-                request.email(),
+                email,
                 request.nickname(),
                 "local",
                 request.languagePref(),
@@ -52,10 +55,10 @@ public class UserService {
         return UserResponse.from(user);
     }
 
-    // 이메일 로그인: 비밀번호 검증 (MVP - 토큰 없이 프로필 반환)
+    // 이메일 로그인: 비밀번호 검증 후 컨트롤러가 JWT와 함께 반환할 프로필 생성
     @Transactional
     public UserResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmail(normalizeEmail(request.email()))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
@@ -77,6 +80,9 @@ public class UserService {
     @Transactional
     public UserResponse socialLogin(SocialLoginRequest request) {
         AuthProvider provider = parseProvider(request.provider());
+        if (provider == AuthProvider.LOCAL) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "소셜 로그인에서는 LOCAL을 사용할 수 없습니다.");
+        }
 
         // 1) 기존 소셜 계정이면 그대로 로그인
         UserAuth existing = userAuthRepository
@@ -89,21 +95,24 @@ public class UserService {
 
         // 2) 이메일 확보 (소셜이 이메일을 안 줄 수 있어 placeholder 생성 - users.email은 NOT NULL)
         String email = (request.email() != null && !request.email().isBlank())
-                ? request.email()
+                ? normalizeEmail(request.email())
                 : provider.name().toLowerCase() + "_" + request.providerUid() + "@social.local";
 
-        // 3) 같은 이메일 계정이 있으면 연결, 없으면 신규 생성
+        // 3) 검증되지 않은 providerUid만으로 기존 이메일 계정에 연결하면 계정 탈취가 가능하므로 거부한다.
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) {
-            user = new User(
-                    email,
-                    request.nickname(),
-                    provider.name().toLowerCase(),
-                    null,
-                    null
+        if (user != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "이미 가입된 이메일입니다. 기존 계정으로 로그인해 주세요."
             );
-            userRepository.save(user);
         }
+        user = new User(
+                email,
+                request.nickname(),
+                provider.name().toLowerCase(),
+                null,
+                null
+        );
+        userRepository.save(user);
 
         UserAuth auth = new UserAuth(user, provider, request.providerUid(), null);
         auth.markLoginNow();
@@ -139,5 +148,9 @@ public class UserService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 방식입니다: " + provider);
         }
+    }
+
+    private String normalizeEmail(String email) {
+        return email.strip().toLowerCase(Locale.ROOT);
     }
 }
