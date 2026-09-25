@@ -1,0 +1,20 @@
+# 로컬 전용 비밀값 예시.
+# 이 파일을 복사해서 application-local.properties로 이름을 바꾼 뒤 실제 값을 채우세요.
+#   cp application-local.properties.example application-local.properties
+# application-local.properties는 .gitignore 대상이라 커밋되지 않습니다. 실제 키는 절대 이 example에 넣지 마세요.
+
+# JWT 서명 키 (32바이트 이상)
+JWT_SECRET=change-me-to-a-random-string-at-least-32-bytes
+
+# YouTube Data API v3 키 (곡 메타데이터 자동 수집)
+YOUTUBE_API_KEY=your-youtube-api-key
+
+# Gemini API 키 (MV 분석)
+GEMINI_API_KEY=your-gemini-api-key
+# gemini-2.5-flash는 신규 키로 사용 불가(404), 3.8/3.7/3.5-flash는 과부하(503)가 잦아 3.6-flash 사용
+GEMINI_MODEL=gemini-3.6-flash
+
+# 로컬 MySQL
+DB_URL=jdbc:mysql://localhost:3306/kculture
+DB_USER=root
+DB_PASSWORD=your-mysql-password
