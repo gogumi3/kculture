@@ -39,6 +39,28 @@ public class HttpClientConfig {
                 .build();
     }
 
+    // 카카오 로그인 액세스 토큰 검증(사용자 정보 조회) 전용
+    @Bean
+    public RestClient kakaoRestClient(
+            @Value("${oauth.timeout-seconds:10}") long timeoutSeconds
+    ) {
+        return RestClient.builder()
+                .baseUrl("https://kapi.kakao.com")
+                .requestFactory(requestFactory(timeoutSeconds))
+                .build();
+    }
+
+    // 구글 로그인 액세스 토큰 검증(사용자 정보 조회) 전용
+    @Bean
+    public RestClient googleRestClient(
+            @Value("${oauth.timeout-seconds:10}") long timeoutSeconds
+    ) {
+        return RestClient.builder()
+                .baseUrl("https://www.googleapis.com")
+                .requestFactory(requestFactory(timeoutSeconds))
+                .build();
+    }
+
     private JdkClientHttpRequestFactory requestFactory(long timeoutSeconds) {
         Duration timeout = Duration.ofSeconds(Math.max(timeoutSeconds, 1));
         HttpClient httpClient = HttpClient.newBuilder()

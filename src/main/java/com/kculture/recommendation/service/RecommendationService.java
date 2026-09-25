@@ -179,7 +179,7 @@ public class RecommendationService {
         String reason = null;
         if (sp.getElement() != null) {
             reason = elementPlaceMatchRepository
-                    .findByElement_IdAndPlace_Id(sp.getElement().getId(), sp.getPlace().getId())
+                    .findFirstByElement_IdAndPlace_IdOrderByMatchScoreDesc(sp.getElement().getId(), sp.getPlace().getId())
                     .map(ElementPlaceMatch::getReason)
                     .orElse(null);
         }
