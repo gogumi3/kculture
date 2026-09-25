@@ -8,6 +8,7 @@ public record SongResponse(
         Long id,
         String title,
         String artist,
+        String youtubeVideoId,
         String thumbnailUrl
 ) {
 }

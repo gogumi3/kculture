@@ -53,10 +53,8 @@ public class RecommendationService {
         Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "곡을 찾을 수 없습니다."));
 
-        User user = (userId != null)
-                ? userRepository.findById(userId).orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."))
-                : null;
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         // 곡의 최신 DONE 분석 → 요소들
         MvAnalysis analysis = mvAnalysisRepository
@@ -110,36 +108,46 @@ public class RecommendationService {
             }
         }
 
+        if (order == 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "문화 요소와 연결된 추천 장소가 없습니다."
+            );
+        }
+
         return buildSessionResponse(session);
     }
 
     // 세션 + 순서대로 추천 장소들
     @Transactional(readOnly = true)
-    public SessionResponse getSession(Long sessionId) {
+    public SessionResponse getSession(Long sessionId, Long userId) {
         RecommendationSession session = findSessionOrThrow(sessionId);
+        verifyOwner(session, userId);
         return buildSessionResponse(session);
     }
 
     // S04 노출 시점 기록
     @Transactional
-    public SessionPlaceResponse markShown(Long sessionPlaceId) {
+    public SessionPlaceResponse markShown(Long sessionPlaceId, Long userId) {
         SessionPlace sp = findSessionPlaceOrThrow(sessionPlaceId);
+        verifyOwner(sp.getSession(), userId);
         sp.markShownNow();
         return toResponse(sp);
     }
 
     // 코스에 담기/빼기
     @Transactional
-    public SessionPlaceResponse choosePlace(Long sessionPlaceId, boolean chosen) {
+    public SessionPlaceResponse choosePlace(Long sessionPlaceId, boolean chosen, Long userId) {
         SessionPlace sp = findSessionPlaceOrThrow(sessionPlaceId);
+        verifyOwner(sp.getSession(), userId);
         sp.markChosen(chosen);
         return toResponse(sp);
     }
 
     // 세션 상태 전환 (CONVERTED / EXPIRED 등)
     @Transactional
-    public SessionResponse updateStatus(Long sessionId, String statusValue) {
+    public SessionResponse updateStatus(Long sessionId, String statusValue, Long userId) {
         RecommendationSession session = findSessionOrThrow(sessionId);
+        verifyOwner(session, userId);
         session.changeStatus(parseStatus(statusValue));
         return buildSessionResponse(session);
     }
@@ -147,6 +155,9 @@ public class RecommendationService {
     // 요소별 추천 장소 목록
     @Transactional(readOnly = true)
     public List<MatchResponse> getMatchesForElement(Long elementId) {
+        if (!culturalElementRepository.existsById(elementId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "문화 요소를 찾을 수 없습니다.");
+        }
         return elementPlaceMatchRepository
                 .findByElement_IdOrderByDisplayOrderAscMatchScoreDesc(elementId).stream()
                 .map(MatchResponse::from)
@@ -168,7 +179,7 @@ public class RecommendationService {
         String reason = null;
         if (sp.getElement() != null) {
             reason = elementPlaceMatchRepository
-                    .findByElement_IdAndPlace_Id(sp.getElement().getId(), sp.getPlace().getId())
+                    .findFirstByElement_IdAndPlace_IdOrderByMatchScoreDesc(sp.getElement().getId(), sp.getPlace().getId())
                     .map(ElementPlaceMatch::getReason)
                     .orElse(null);
         }
@@ -190,6 +201,12 @@ public class RecommendationService {
     private SessionPlace findSessionPlaceOrThrow(Long sessionPlaceId) {
         return sessionPlaceRepository.findById(sessionPlaceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "추천 장소를 찾을 수 없습니다."));
+    }
+
+    private void verifyOwner(RecommendationSession session, Long userId) {
+        if (session.getUser() == null || !session.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인의 추천 세션만 접근할 수 있습니다.");
+        }
     }
 
     private RecommendationStatus parseStatus(String value) {

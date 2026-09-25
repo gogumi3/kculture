@@ -3,9 +3,13 @@ package com.kculture.content.client;
 import tools.jackson.databind.JsonNode;
 import com.kculture.content.client.dto.YoutubeVideoInfo;
 import com.kculture.content.exception.ContentNotFoundException;
+import com.kculture.common.exception.ExternalApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.ResourceAccessException;
 
 /**
  * YouTube Data API v3로 곡 메타데이터(제목/채널/썸네일/공개여부)를 가져온다.
@@ -26,14 +30,31 @@ public class YoutubeDataClient {
     }
 
     public YoutubeVideoInfo fetch(String videoId) {
-        JsonNode resp = client.get()
-                .uri(uri -> uri.path("/videos")
-                        .queryParam("part", "snippet,status,contentDetails")
-                        .queryParam("id", videoId)
-                        .queryParam("key", apiKey)
-                        .build())
-                .retrieve()
-                .body(JsonNode.class);
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ExternalApiException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "YouTube API 키가 설정되지 않았습니다."
+            );
+        }
+
+        JsonNode resp;
+        try {
+            resp = client.get()
+                    .uri(uri -> uri.path("/videos")
+                            .queryParam("part", "snippet,status,contentDetails")
+                            .queryParam("id", videoId)
+                            .queryParam("key", apiKey)
+                            .build())
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (ResourceAccessException exception) {
+            throw new ExternalApiException(
+                    HttpStatus.GATEWAY_TIMEOUT, "YouTube API 응답 시간이 초과되었습니다.", exception
+            );
+        } catch (RestClientException exception) {
+            throw new ExternalApiException(
+                    HttpStatus.BAD_GATEWAY, "YouTube API 호출에 실패했습니다.", exception
+            );
+        }
 
         JsonNode item = (resp == null) ? null : resp.path("items").path(0);
         if (item == null || item.isMissingNode() || item.isEmpty()) {

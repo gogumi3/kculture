@@ -9,8 +9,10 @@ import com.kculture.travel.repository.PlaceRepository;
 import com.kculture.recommendation.domain.*;
 import com.kculture.recommendation.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @Service
@@ -25,14 +27,15 @@ public class QuestService {
     private final RecommendationSessionRepository sessionRepository;
     private final SessionPlaceRepository sessionPlaceRepository;
 
-    public List<QuestResponse> findAllQuests() {
+    public List<QuestResponse> findAllQuests(Long userId) {
         return questRepository.findByActiveTrueOrderByIdDesc().stream()
+                .filter(quest -> canAccess(quest, userId))
                 .map(QuestResponse::from)
                 .toList();
     }
 
-    public QuestDetailResponse findQuest(Long questId) {
-        Quest quest = findQuestEntity(questId);
+    public QuestDetailResponse findQuest(Long questId, Long userId) {
+        Quest quest = findQuestEntity(questId, userId);
         List<QuestStepResponse> steps = stepRepository.findByQuestIdOrderByStepOrderAsc(questId).stream()
                 .map(step -> QuestStepResponse.from(
                         step,
@@ -82,19 +85,23 @@ public class QuestService {
 
     // 추천 세션에서 선택한 장소들을 순서대로 퀘스트 단계와 기본 사진 미션으로 만든다.
     @Transactional
-    public QuestResponse createQuestFromSession(QuestFromSessionRequest request) {
+    public QuestResponse createQuestFromSession(Long userId, QuestFromSessionRequest request) {
+        RecommendationSession session = sessionRepository.findByIdForUpdate(request.sessionId())
+                .orElseThrow(() -> new QuestNotFoundException("추천 세션을 찾을 수 없습니다."));
+        if (session.getUser() == null || !session.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "본인의 추천 세션만 퀘스트로 만들 수 있습니다."
+            );
+        }
         return questRepository.findBySessionId(request.sessionId())
                 .map(QuestResponse::from)
-                .orElseGet(() -> createNewQuestFromSession(request));
+                .orElseGet(() -> createNewQuestFromSession(session, request));
     }
 
-    private QuestResponse createNewQuestFromSession(QuestFromSessionRequest request) {
-        RecommendationSession session = sessionRepository.findById(request.sessionId())
-                .orElseThrow(() -> new QuestNotFoundException("추천 세션을 찾을 수 없습니다."));
-
-        if (session.getUser() == null || !session.getUser().getId().equals(request.userId())) {
-            throw new IllegalArgumentException("본인의 추천 세션만 퀘스트로 만들 수 있습니다.");
-        }
+    private QuestResponse createNewQuestFromSession(
+            RecommendationSession session,
+            QuestFromSessionRequest request
+    ) {
         if (session.getStatus() != RecommendationStatus.ACTIVE) {
             throw new IllegalStateException("진행 중인 추천 세션만 퀘스트로 만들 수 있습니다.");
         }
@@ -130,9 +137,23 @@ public class QuestService {
         return QuestResponse.from(quest);
     }
 
-    public Quest findQuestEntity(Long questId) {
-        return questRepository.findById(questId)
+    public Quest findQuestEntity(Long questId, Long userId) {
+        Quest quest = questRepository.findById(questId)
                 .filter(Quest::isActive)
                 .orElseThrow(() -> new QuestNotFoundException("퀘스트를 찾을 수 없습니다."));
+        if (!canAccess(quest, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "이 퀘스트에 접근할 권한이 없습니다.");
+        }
+        return quest;
+    }
+
+    private boolean canAccess(Quest quest, Long userId) {
+        if (quest.getOriginType() == QuestOriginType.CURATED) {
+            return true;
+        }
+        return userId != null
+                && quest.getSession() != null
+                && quest.getSession().getUser() != null
+                && userId.equals(quest.getSession().getUser().getId());
     }
 }

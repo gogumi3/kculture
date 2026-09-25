@@ -7,8 +7,8 @@ import com.kculture.content.dto.SongResponse;
 import com.kculture.content.exception.ContentNotFoundException;
 import com.kculture.content.repository.SongRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +29,7 @@ public class SongService {
                         song.getId(),
                         song.getTitle(),
                         song.getArtist(),
+                        song.getYoutubeVideoId(),
                         song.getThumbnailUrl()
                 ))
                 .toList();
@@ -42,6 +43,7 @@ public class SongService {
                 song.getId(),
                 song.getTitle(),
                 song.getArtist(),
+                song.getYoutubeVideoId(),
                 song.getThumbnailUrl()
         );
     }
@@ -57,32 +59,42 @@ public class SongService {
                         song.getId(),
                         song.getTitle(),
                         song.getArtist(),
+                        song.getYoutubeVideoId(),
                         song.getThumbnailUrl()
                 ))
                 .toList();
     }
 
     // 공개 MV의 video id로 곡을 등록한다. 메타데이터(제목/가수/썸네일)는 YouTube Data API로 자동 수집한다.
-    @Transactional
+    // 의도적으로 @Transactional을 걸지 않는다 — 동시 등록 충돌 시 save 실패가 전체 트랜잭션을
+    // rollback-only로 만들지 않고, 재조회가 다른 요청이 커밋한 행을 볼 수 있어야 하기 때문.
     public SongResponse createFromYoutube(String youtubeVideoId) {
         String videoId = youtubeVideoId.strip();
         return songRepository.findByYoutubeVideoId(videoId)
                 .map(this::toResponse)                       // 이미 있으면 재사용
                 .orElseGet(() -> {
                     YoutubeVideoInfo info = youtubeDataClient.fetch(videoId);
-                    Song saved = songRepository.save(new Song(
-                            info.title(),
-                            info.channelTitle(),             // 채널명을 아티스트로 사용
-                            videoId,
-                            info.thumbnailUrl()
-                    ));
-                    return toResponse(saved);
+                    try {
+                        Song saved = songRepository.save(new Song(
+                                info.title(),
+                                info.channelTitle(),             // 채널명을 아티스트로 사용
+                                videoId,
+                                info.thumbnailUrl()
+                        ));
+                        return toResponse(saved);
+                    } catch (DataIntegrityViolationException e) {
+                        // 동시 요청이 같은 videoId를 먼저 등록한 경우 — 그 곡을 그대로 재사용한다.
+                        return songRepository.findByYoutubeVideoId(videoId)
+                                .map(this::toResponse)
+                                .orElseThrow(() -> e);
+                    }
                 });
     }
 
     private SongResponse toResponse(Song song) {
         return new SongResponse(
-                song.getId(), song.getTitle(), song.getArtist(), song.getThumbnailUrl()
+                song.getId(), song.getTitle(), song.getArtist(),
+                song.getYoutubeVideoId(), song.getThumbnailUrl()
         );
     }
 }

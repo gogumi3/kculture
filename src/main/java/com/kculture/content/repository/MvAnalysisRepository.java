@@ -3,6 +3,10 @@ package com.kculture.content.repository;
 import com.kculture.content.domain.AnalysisStatus;
 import com.kculture.content.domain.MvAnalysis;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,4 +19,8 @@ public interface MvAnalysisRepository extends JpaRepository<MvAnalysis, Long> {
 
     // 곡의 최신 분석 (특정 상태, 예: DONE) 조회
     Optional<MvAnalysis> findFirstBySong_IdAndStatusOrderByFinishedAtDesc(Long songId, AnalysisStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from MvAnalysis a where a.id = :id")
+    Optional<MvAnalysis> findByIdForUpdate(@Param("id") Long id);
 }

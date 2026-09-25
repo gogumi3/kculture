@@ -7,6 +7,7 @@ import com.kculture.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,15 +25,15 @@ public class UserController {
     }
 
     // 프로필 조회
-    @GetMapping("/{id}")
-    public UserResponse getUser(@PathVariable Long id) {
-        return userService.getUser(id);
+    @GetMapping("/me")
+    public UserResponse getUser(@AuthenticationPrincipal Long userId) {
+        return userService.getUser(userId);
     }
 
     // 설정(닉네임/국적/언어) 수정
-    @PatchMapping("/{id}")
-    public UserResponse updateUser(@PathVariable Long id,
+    @PatchMapping("/me")
+    public UserResponse updateUser(@AuthenticationPrincipal Long userId,
                                    @Valid @RequestBody UserUpdateRequest request) {
-        return userService.updateUser(id, request);
+        return userService.updateUser(userId, request);
     }
 }

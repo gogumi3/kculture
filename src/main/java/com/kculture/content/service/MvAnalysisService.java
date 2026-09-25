@@ -58,7 +58,7 @@ public class MvAnalysisService {
 
     @Transactional
     public AnalysisResponse startAnalysis(Long analysisId) {
-        MvAnalysis analysis = findEntity(analysisId);
+        MvAnalysis analysis = findEntityForUpdate(analysisId);
         if (analysis.getStatus() != AnalysisStatus.PENDING) {
             throw new IllegalArgumentException("대기 중인 분석만 시작할 수 있습니다.");
         }
@@ -68,7 +68,7 @@ public class MvAnalysisService {
 
     @Transactional
     public AnalysisResponse completeAnalysis(Long analysisId, AnalysisCompleteRequest request) {
-        MvAnalysis analysis = findEntity(analysisId);
+        MvAnalysis analysis = findEntityForUpdate(analysisId);
         if (analysis.getStatus() != AnalysisStatus.RUNNING) {
             throw new IllegalArgumentException("진행 중인 분석만 완료할 수 있습니다.");
         }
@@ -87,7 +87,7 @@ public class MvAnalysisService {
 
     @Transactional
     public AnalysisResponse failAnalysis(Long analysisId, String reason) {
-        MvAnalysis analysis = findEntity(analysisId);
+        MvAnalysis analysis = findEntityForUpdate(analysisId);
         // 비동기 러너 재호출 등으로 이미 종료된 경우엔 그대로 반환(멱등)
         if (analysis.getStatus() == AnalysisStatus.DONE || analysis.getStatus() == AnalysisStatus.FAILED) {
             return AnalysisResponse.from(analysis);
@@ -100,7 +100,7 @@ public class MvAnalysisService {
     // started=true인 경우에만 호출 측(컨트롤러)이 비동기 러너를 트리거한다.
     @Transactional
     public RunResult createAndStart(Long songId, String modelName) {
-        Song song = songRepository.findById(songId)
+        Song song = songRepository.findByIdForUpdate(songId)
                 .orElseThrow(() -> new ContentNotFoundException("곡을 찾을 수 없습니다."));
         if (modelName == null || modelName.isBlank()) {
             throw new IllegalArgumentException("모델 이름을 입력하세요.");
@@ -123,6 +123,11 @@ public class MvAnalysisService {
 
     private MvAnalysis findEntity(Long id) {
         return analysisRepository.findById(id)
+                .orElseThrow(() -> new ContentNotFoundException("분석 기록을 찾을 수 없습니다."));
+    }
+
+    private MvAnalysis findEntityForUpdate(Long id) {
+        return analysisRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ContentNotFoundException("분석 기록을 찾을 수 없습니다."));
     }
 }
