@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "K-컬처 리얼맵",
+    "slug": "kculture-realmap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kculture.realmap"
+    },
+    "android": {
+      "package": "com.kculture.realmap"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "퀘스트 장소 도착을 확인하려면 위치 권한이 필요해요."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "미션 인증 사진을 선택하려면 사진 접근 권한이 필요해요.",
+          "cameraPermission": "미션 인증 사진을 촬영하려면 카메라 권한이 필요해요."
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+# [Claude 작성 - 신규 파일]
+# 이 파일을 같은 폴더에 "application-local.properties" 라는 이름으로 복사한 뒤,
+# 아래 값들을 실제 키로 채워넣으세요. application-local.properties는 .gitignore에
+# 등록돼 있어서 절대 git에 커밋되지 않습니다 (실수로 API 키가 깃허브에 올라가는 걸 막기 위함).
+
+DB_PASSWORD=여기에_실제_MySQL_비밀번호
+YOUTUBE_API_KEY=여기에_유튜브_API_키
+GEMINI_API_KEY=여기에_Gemini_API_키
+JWT_SECRET=여기에_JWT_시크릿
